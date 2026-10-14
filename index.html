@@ -5,78 +5,95 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>30000s Persistent Timer</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
     :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --text: #f8fafc;
-      --accent: #38bdf8;
-      --muted: #94a3b8;
+      --bg: #0d0f1a;
+      --card: #1a1f2f;
+      --text: #f9f4da;
+      --accent: #67f7d0;
+      --muted: #ffc46b;
+      --danger: #ff6b9e;
+      --border: #7e7aff;
     }
     body {
       margin: 0;
-      height: 100vh;
+      min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       background: var(--bg);
       color: var(--text);
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: 'Press Start 2P', monospace;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 14px 14px;
+      padding: 1rem;
     }
     .timer-card {
       background: var(--card);
-      padding: 3rem 4rem;
-      border-radius: 1.5rem;
+      padding: 2rem;
       text-align: center;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+      border: 4px solid var(--border);
+      box-shadow: 8px 8px 0 #000;
+      max-width: 760px;
+      width: 100%;
     }
     .meta {
-      font-size: 0.85rem;
+      font-size: 0.7rem;
       color: var(--muted);
-      margin-bottom: 0.5rem;
+      margin-bottom: 1rem;
+      line-height: 1.8;
     }
     #display {
-      font-size: 5.5rem;
+      font-size: clamp(2rem, 8vw, 4.2rem);
       font-weight: 800;
       font-variant-numeric: tabular-nums;
-      letter-spacing: -2px;
-      margin: 0.25rem 0;
+      margin: 0.6rem 0 1rem;
       color: var(--accent);
+      text-shadow: 4px 4px #000;
     }
     .unit-label {
-      font-size: 0.9rem;
+      font-size: 0.7rem;
       text-transform: uppercase;
-      letter-spacing: 0.15em;
-      opacity: 0.7;
-      margin-bottom: 2rem;
-    }
-    .controls {
-      display: flex;
-      gap: 0.75rem;
-      justify-content: center;
-      flex-wrap: wrap;
+      letter-spacing: 0.08em;
+      opacity: 0.9;
+      margin-bottom: 1.5rem;
     }
     button {
-      padding: 0.8rem 1.4rem;
-      font-size: 0.95rem;
+      padding: 1rem 1.1rem;
+      font-size: 0.65rem;
       font-weight: 600;
-      border: none;
-      border-radius: 0.75rem;
+      border: 3px solid #000;
       cursor: pointer;
+      font-family: inherit;
+      text-transform: uppercase;
+      line-height: 1.6;
+      background: var(--accent);
+      color: #09111f;
+      box-shadow: 4px 4px 0 #000;
+      transition: transform 0.08s ease;
     }
-    #toggleBtn { background: var(--accent); color: #0f172a; }
-    #restart1MinAgoBtn, #reset30000Btn { background: #334155; color: var(--text); }
+    button:active {
+      transform: translate(3px, 3px);
+      box-shadow: 1px 1px 0 #000;
+    }
+    #finalMessage {
+      margin-top: 1.2rem;
+      color: var(--danger);
+      font-size: 0.75rem;
+      min-height: 1.2rem;
+    }
   </style>
 </head>
 <body>
   <div class="timer-card">
-    <div class="meta" id="metaInfo">30,000s Timer • Started 1 Min Ago (29,940s Left at Launch)</div>
+    <div class="meta" id="metaInfo">aaooee has itna seconds to say the name</div>
     <div id="display">29940</div>
     <div class="unit-label">Seconds Remaining</div>
-    <div class="controls">
-      <button id="toggleBtn">Pause</button>
-      <button id="restart1MinAgoBtn">Restart (1 Min Ago = 29940s)</button>
-      <button id="reset30000Btn">Fresh 30000s</button>
-    </div>
+    <button id="aoeBtn">i am aoe and i have the name</button>
+    <div id="finalMessage" aria-live="polite"></div>
   </div>
 
   <script>
@@ -85,9 +102,8 @@
     const STORAGE_KEY = 'persistent_30000s_timer_1min_ago';
 
     const display = document.getElementById('display');
-    const toggleBtn = document.getElementById('toggleBtn');
-    const restart1MinAgoBtn = document.getElementById('restart1MinAgoBtn');
-    const reset30000Btn = document.getElementById('reset30000Btn');
+    const aoeBtn = document.getElementById('aoeBtn');
+    const finalMessage = document.getElementById('finalMessage');
 
     function createInitialState() {
       const startTimestamp = Date.now() - (OFFSET_SECONDS * 1000);
@@ -126,38 +142,13 @@
 
       const secondsLeft = Math.ceil(state.remainingMs / 1000);
       display.textContent = secondsLeft;
-      document.title = `${secondsLeft}s — Timer`;
-      toggleBtn.textContent = state.isRunning ? 'Pause' : (secondsLeft === 0 ? 'Done' : 'Resume');
+      document.title = `aaooee has ${secondsLeft}s`;
     }
 
-    toggleBtn.addEventListener('click', () => {
-      if (state.remainingMs <= 0) return;
-      if (state.isRunning) {
-        state.remainingMs = Math.max(0, state.targetEndTime - Date.now());
-        state.isRunning = false;
-        state.targetEndTime = null;
-      } else {
-        state.isRunning = true;
-        state.targetEndTime = Date.now() + state.remainingMs;
-      }
-      saveState();
-      render();
-    });
-
-    restart1MinAgoBtn.addEventListener('click', () => {
-      state = createInitialState();
-      saveState();
-      render();
-    });
-
-    reset30000Btn.addEventListener('click', () => {
-      state = {
-        isRunning: true,
-        targetEndTime: Date.now() + INITIAL_SECONDS * 1000,
-        remainingMs: INITIAL_SECONDS * 1000
-      };
-      saveState();
-      render();
+    aoeBtn.addEventListener('click', () => {
+      const prompts = ['you sure?', 'pakka?', '100%?', 'fr?'];
+      const allConfirmed = prompts.every((question) => window.confirm(question));
+      finalMessage.textContent = allConfirmed ? 'oak. textmaxx.' : '';
     });
 
     loadState();
