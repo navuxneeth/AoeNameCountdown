@@ -85,6 +85,42 @@
       font-size: 0.75rem;
       min-height: 1.2rem;
     }
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      padding: 1rem;
+    }
+    .confirm-overlay.open {
+      display: flex;
+    }
+    .confirm-modal {
+      width: min(460px, 100%);
+      background: var(--card);
+      border: 4px solid var(--border);
+      box-shadow: 8px 8px 0 #000;
+      padding: 1.2rem;
+      text-align: center;
+    }
+    .confirm-title {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+    .confirm-question {
+      font-size: 0.7rem;
+      margin-bottom: 1.2rem;
+      line-height: 1.8;
+    }
+    .confirm-actions {
+      display: flex;
+      justify-content: center;
+      gap: 0.8rem;
+    }
   </style>
 </head>
 <body>
@@ -95,6 +131,16 @@
     <button id="aoeBtn">i am aoe and i have the name</button>
     <div id="finalMessage" aria-live="polite"></div>
   </div>
+  <div id="confirmOverlay" class="confirm-overlay" aria-hidden="true">
+    <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmQuestion">
+      <div id="confirmTitle" class="confirm-title">(≖_≖ )</div>
+      <div id="confirmQuestion" class="confirm-question"></div>
+      <div class="confirm-actions">
+        <button id="confirmNo" type="button">n</button>
+        <button id="confirmYes" type="button">m</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const INITIAL_SECONDS = 30000;
@@ -103,6 +149,10 @@
     const display = document.getElementById('display');
     const aoeBtn = document.getElementById('aoeBtn');
     const finalMessage = document.getElementById('finalMessage');
+    const confirmOverlay = document.getElementById('confirmOverlay');
+    const confirmQuestion = document.getElementById('confirmQuestion');
+    const confirmNo = document.getElementById('confirmNo');
+    const confirmYes = document.getElementById('confirmYes');
 
     function getIstTodayStartTimestamp() {
       const dateParts = new Intl.DateTimeFormat('en-CA', {
@@ -182,9 +232,64 @@
       document.title = `aaooee timer • ${secondsLeft}s`;
     }
 
-    aoeBtn.addEventListener('click', () => {
+    function askConfirm(question) {
+      confirmQuestion.textContent = question;
+      confirmOverlay.classList.add('open');
+      confirmOverlay.setAttribute('aria-hidden', 'false');
+
+      return new Promise((resolve) => {
+        const cleanup = () => {
+          confirmOverlay.classList.remove('open');
+          confirmOverlay.setAttribute('aria-hidden', 'true');
+          confirmYes.removeEventListener('click', onYes);
+          confirmNo.removeEventListener('click', onNo);
+          confirmOverlay.removeEventListener('click', onBackdrop);
+          document.removeEventListener('keydown', onKeydown);
+        };
+
+        const onYes = () => {
+          cleanup();
+          resolve(true);
+        };
+
+        const onNo = () => {
+          cleanup();
+          resolve(false);
+        };
+
+        const onBackdrop = (event) => {
+          if (event.target === confirmOverlay) {
+            onNo();
+          }
+        };
+
+        const onKeydown = (event) => {
+          if (event.key === 'Escape') {
+            onNo();
+          } else if (event.key.toLowerCase() === 'm') {
+            onYes();
+          } else if (event.key.toLowerCase() === 'n') {
+            onNo();
+          }
+        };
+
+        confirmYes.addEventListener('click', onYes);
+        confirmNo.addEventListener('click', onNo);
+        confirmOverlay.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKeydown);
+      });
+    }
+
+    aoeBtn.addEventListener('click', async () => {
       const prompts = ['you sure?', 'pakka?', '100%?', 'fr?'];
-      const allConfirmed = prompts.every((question) => window.confirm(question));
+      let allConfirmed = true;
+      for (const question of prompts) {
+        const confirmed = await askConfirm(question);
+        if (!confirmed) {
+          allConfirmed = false;
+          break;
+        }
+      }
       finalMessage.textContent = allConfirmed ? 'oak. textmaxx.' : '';
     });
 
