@@ -20,6 +20,7 @@
       margin: 0;
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       background: var(--bg);
@@ -45,6 +46,15 @@
       color: var(--muted);
       margin-bottom: 1rem;
       line-height: 1.8;
+    }
+    .expired-text {
+      font-size: 0.7rem;
+      color: var(--danger);
+      margin-bottom: 1rem;
+      line-height: 1.8;
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
     }
     #display {
       font-size: clamp(2rem, 8vw, 4.2rem);
@@ -79,11 +89,19 @@
       transform: translate(3px, 3px);
       box-shadow: 1px 1px 0 #000;
     }
+    #sadOptions {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 1rem;
+      align-items: center;
+    }
     #finalMessage {
       margin-top: 1.2rem;
       color: var(--danger);
       font-size: 0.75rem;
       min-height: 1.2rem;
+      line-height: 1.6;
     }
     .confirm-overlay {
       position: fixed;
@@ -121,16 +139,48 @@
       justify-content: center;
       gap: 0.8rem;
     }
+    #secretBtn {
+      margin-top: 3rem;
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      color: var(--text);
+      opacity: 0.05;
+      font-size: 0.5rem;
+      padding: 0.5rem;
+    }
+    #secretBtn:hover {
+      opacity: 0.3;
+    }
+    .hidden {
+      display: none !important;
+    }
   </style>
 </head>
 <body>
   <div class="timer-card">
     <div class="meta" id="metaInfo">aaooee has itna seconds to say the name</div>
-    <div id="display">29940</div>
-    <div class="unit-label">Seconds Remaining</div>
+    <div class="expired-text hidden" id="expiredText">
+      <div>aoe has run out of time. or eptmaxx. or didnt know this existed.</div>
+      <div>what turning 82 does to a nga</div>
+    </div>
+    
+    <div id="display">0</div>
+    <div class="unit-label" id="unitLabel">Seconds Remaining</div>
+    
     <button id="aoeBtn">i am aoe and i have the name</button>
+    <button id="sadBtn" class="hidden">:(</button>
+    
+    <div id="sadOptions" class="hidden">
+      <button id="alrSubmittedBtn">i alr submitted name</button>
+      <button id="soriBtn">im sori. i submit name now</button>
+    </div>
+
     <div id="finalMessage" aria-live="polite"></div>
   </div>
+
+  <button id="secretBtn">secret</button>
+
   <div id="confirmOverlay" class="confirm-overlay" aria-hidden="true">
     <div class="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmQuestion">
       <div id="confirmTitle" class="confirm-title">(≖_≖ )</div>
@@ -144,11 +194,21 @@
 
   <script>
     const INITIAL_SECONDS = 30000;
-    const STORAGE_KEY = 'persistent_30000s_timer_1min_ago';
+    const SECRET_SECONDS = 100;
+    const STORAGE_KEY = 'persistent_timer_v2';
 
     const display = document.getElementById('display');
+    const metaInfo = document.getElementById('metaInfo');
+    const expiredText = document.getElementById('expiredText');
+    const unitLabel = document.getElementById('unitLabel');
     const aoeBtn = document.getElementById('aoeBtn');
+    const sadBtn = document.getElementById('sadBtn');
+    const sadOptions = document.getElementById('sadOptions');
+    const alrSubmittedBtn = document.getElementById('alrSubmittedBtn');
+    const soriBtn = document.getElementById('soriBtn');
+    const secretBtn = document.getElementById('secretBtn');
     const finalMessage = document.getElementById('finalMessage');
+    
     const confirmOverlay = document.getElementById('confirmOverlay');
     const confirmQuestion = document.getElementById('confirmQuestion');
     const confirmNo = document.getElementById('confirmNo');
@@ -166,7 +226,6 @@
       const month = Number(dateParts.find((part) => part.type === 'month').value);
       const day = Number(dateParts.find((part) => part.type === 'day').value);
 
-      // 18:35 IST equals 13:05 UTC
       return Date.UTC(year, month - 1, day, 13, 5, 0, 0);
     }
 
@@ -183,7 +242,9 @@
         isRunning: timerStarted && remainingMs > 0,
         targetEndTime: timerStarted ? targetEndTime : null,
         remainingMs,
-        startTimestamp
+        startTimestamp,
+        isSecretMode: false,
+        isEnded: false
       };
     }
 
@@ -205,7 +266,7 @@
 
       try {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.startTimestamp === scheduledStart) {
+        if (parsed && (parsed.startTimestamp === scheduledStart || parsed.isSecretMode)) {
           state = parsed;
         } else {
           state = createInitialState();
@@ -217,6 +278,42 @@
       }
     }
 
+    function updateUI() {
+      if (state.isSecretMode) {
+        secretBtn.classList.add('hidden');
+      }
+
+      if (state.remainingMs === 0 && !state.isEnded) {
+        metaInfo.classList.add('hidden');
+        unitLabel.classList.add('hidden');
+        aoeBtn.classList.add('hidden');
+        
+        expiredText.classList.remove('hidden');
+        if (sadOptions.classList.contains('hidden')) {
+          sadBtn.classList.remove('hidden');
+        }
+      } else if (!state.isEnded) {
+        metaInfo.classList.remove('hidden');
+        unitLabel.classList.remove('hidden');
+        aoeBtn.classList.remove('hidden');
+        
+        expiredText.classList.add('hidden');
+        sadBtn.classList.add('hidden');
+        sadOptions.classList.add('hidden');
+      }
+    }
+
+    function startSecretTimer() {
+      state.isSecretMode = true;
+      state.remainingMs = SECRET_SECONDS * 1000;
+      state.targetEndTime = Date.now() + (SECRET_SECONDS * 1000);
+      state.isRunning = true;
+      state.isEnded = false;
+      finalMessage.textContent = '';
+      saveState();
+      updateUI();
+    }
+
     function render() {
       if (state.isRunning && state.targetEndTime) {
         state.remainingMs = Math.max(0, state.targetEndTime - Date.now());
@@ -224,6 +321,7 @@
           state.isRunning = false;
           state.targetEndTime = null;
           saveState();
+          updateUI();
         }
       }
 
@@ -247,30 +345,13 @@
           document.removeEventListener('keydown', onKeydown);
         };
 
-        const onYes = () => {
-          cleanup();
-          resolve(true);
-        };
-
-        const onNo = () => {
-          cleanup();
-          resolve(false);
-        };
-
-        const onBackdrop = (event) => {
-          if (event.target === confirmOverlay) {
-            onNo();
-          }
-        };
-
+        const onYes = () => { cleanup(); resolve(true); };
+        const onNo = () => { cleanup(); resolve(false); };
+        
+        const onBackdrop = (event) => { if (event.target === confirmOverlay) onNo(); };
         const onKeydown = (event) => {
-          if (event.key === 'Escape') {
-            onNo();
-          } else if (event.key.toLowerCase() === 'm') {
-            onYes();
-          } else if (event.key.toLowerCase() === 'n') {
-            onNo();
-          }
+          if (event.key === 'Escape' || event.key.toLowerCase() === 'n') onNo();
+          else if (event.key.toLowerCase() === 'm') onYes();
         };
 
         confirmYes.addEventListener('click', onYes);
@@ -290,13 +371,41 @@
           break;
         }
       }
-      finalMessage.textContent = allConfirmed ? 'oak. textmaxx.' : '';
+      if (allConfirmed) {
+        state.isRunning = false;
+        saveState();
+        finalMessage.textContent = state.isSecretMode 
+          ? 'oak. screenshotmaxx. then text the name.' 
+          : 'oak. textmaxx.';
+      } else {
+        finalMessage.textContent = '';
+      }
     });
 
+    sadBtn.addEventListener('click', () => {
+      sadBtn.classList.add('hidden');
+      sadOptions.classList.remove('hidden');
+    });
+
+    alrSubmittedBtn.addEventListener('click', () => {
+      sadOptions.classList.add('hidden');
+      state.isEnded = true;
+      saveState();
+      finalMessage.textContent = 'peak';
+    });
+
+    soriBtn.addEventListener('click', startSecretTimer);
+    secretBtn.addEventListener('click', startSecretTimer);
+
     loadState();
+    updateUI();
     render();
     setInterval(render, 100);
-    document.addEventListener('visibilitychange', render);
+    document.addEventListener('visibilitychange', () => {
+      loadState();
+      updateUI();
+      render();
+    });
   </script>
 </body>
 </html>
