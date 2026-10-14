@@ -172,7 +172,6 @@
     <button id="sadBtn" class="hidden">:(</button>
     
     <div id="sadOptions" class="hidden">
-      <button id="alrSubmittedBtn">i alr submitted name</button>
       <button id="soriBtn">im sori. i submit name now</button>
     </div>
 
@@ -204,7 +203,6 @@
     const aoeBtn = document.getElementById('aoeBtn');
     const sadBtn = document.getElementById('sadBtn');
     const sadOptions = document.getElementById('sadOptions');
-    const alrSubmittedBtn = document.getElementById('alrSubmittedBtn');
     const soriBtn = document.getElementById('soriBtn');
     const secretBtn = document.getElementById('secretBtn');
     const finalMessage = document.getElementById('finalMessage');
@@ -374,13 +372,6 @@
     sadBtn.addEventListener('click', () => {
       sadBtn.classList.add('hidden');
       sadOptions.classList.remove('hidden');
-    });
-
-    alrSubmittedBtn.addEventListener('click', () => {
-      sadOptions.classList.add('hidden');
-      state.isEnded = true;
-      saveState();
-      finalMessage.textContent = 'peak';
     });
 
     soriBtn.addEventListener('click', startSecretTimer);
