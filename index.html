@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>30000s Persistent Timer</title>
+  <title>aaooee timer</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
 
@@ -98,20 +98,42 @@
 
   <script>
     const INITIAL_SECONDS = 30000;
-    const OFFSET_SECONDS = 60; // Started 1 minute ago
     const STORAGE_KEY = 'persistent_30000s_timer_1min_ago';
 
     const display = document.getElementById('display');
     const aoeBtn = document.getElementById('aoeBtn');
     const finalMessage = document.getElementById('finalMessage');
 
+    function getIstTodayStartTimestamp() {
+      const dateParts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Kolkata',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(new Date());
+
+      const year = Number(dateParts.find((part) => part.type === 'year').value);
+      const month = Number(dateParts.find((part) => part.type === 'month').value);
+      const day = Number(dateParts.find((part) => part.type === 'day').value);
+
+      // 18:35 IST equals 13:05 UTC
+      return Date.UTC(year, month - 1, day, 13, 5, 0, 0);
+    }
+
     function createInitialState() {
-      const startTimestamp = Date.now() - (OFFSET_SECONDS * 1000);
+      const startTimestamp = getIstTodayStartTimestamp();
       const targetEndTime = startTimestamp + (INITIAL_SECONDS * 1000);
+      const now = Date.now();
+      const timerStarted = now >= startTimestamp;
+      const remainingMs = timerStarted
+        ? Math.max(0, targetEndTime - now)
+        : INITIAL_SECONDS * 1000;
+
       return {
-        isRunning: true,
-        targetEndTime: targetEndTime,
-        remainingMs: Math.max(0, targetEndTime - Date.now())
+        isRunning: timerStarted && remainingMs > 0,
+        targetEndTime: timerStarted ? targetEndTime : null,
+        remainingMs,
+        startTimestamp
       };
     }
 
@@ -122,10 +144,25 @@
     }
 
     function loadState() {
+      const scheduledStart = getIstTodayStartTimestamp();
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        state = JSON.parse(saved);
-      } else {
+
+      if (!saved) {
+        state = createInitialState();
+        saveState();
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && parsed.startTimestamp === scheduledStart) {
+          state = parsed;
+        } else {
+          state = createInitialState();
+          saveState();
+        }
+      } catch {
+        state = createInitialState();
         saveState();
       }
     }
@@ -142,7 +179,7 @@
 
       const secondsLeft = Math.ceil(state.remainingMs / 1000);
       display.textContent = secondsLeft;
-      document.title = `aaooee has ${secondsLeft}s`;
+      document.title = `aaooee timer • ${secondsLeft}s`;
     }
 
     aoeBtn.addEventListener('click', () => {
